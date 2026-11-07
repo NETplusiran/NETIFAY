@@ -33,7 +33,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from urllib.parse import urlparse
 
-VERSION = "2.5.7"
+VERSION = "2.5.8"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -4417,8 +4417,8 @@ function renderSecBar(local){
   const items=[];
   if(location.protocol!=='https:')items.push(_L('HTTPS (TLS) فعال نیست؛ رمز و کوکی پنل بدون رمزنگاری ارسال می‌شوند.'));
   if(!/^\/[^/]+\/?/.test(location.pathname))items.push(_L('مسیر مخفی پنل تنظیم نشده است.'));
-  items.push(_L('بعد از تمام شدن کانفیگ‌ها، دسترسی وب از بیرون را از تنظیمات ببندید.'));
-  if(local||hide){bar.classList.add('hidden');return}
+  if(items.length)items.push(_L('بعد از تمام شدن کانفیگ‌ها، دسترسی وب از بیرون را از تنظیمات ببندید.'));
+  if(local||hide||!items.length){bar.classList.add('hidden');return}
   bar.innerHTML=ic('alert')+'<span class="sb-txt"><b>'+_L('امنیت پنل:')+'</b> '+items.join(' · ')+' <a data-go="settings">'+_L('رفتن به تنظیمات')+'</a></span>'+
     '<button type="button" class="sb-x" title="'+_L('بستن')+'">'+ic('x','sm')+'</button>';
   bar.classList.remove('hidden');
