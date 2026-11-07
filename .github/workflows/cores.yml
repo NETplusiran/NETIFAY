@@ -1,0 +1,70 @@
+# Mirrors the tunnel cores from their official projects into this repo's
+# release "cores", with fixed file names that the NETIFAY panel downloads.
+# Run it from the Actions tab (Run workflow); it also runs every Monday.
+name: Update cores
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: write
+
+jobs:
+  cores:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download official releases
+        shell: bash
+        run: |
+          set -u
+          mkdir -p out && cd out
+          ok=(); fail=()
+          get() {  # get <repo> <tag|latest> <pattern> <output>
+            local repo="$1" tag="$2" pat="$3" outf="$4" args=()
+            [ "$tag" != "latest" ] && args=("$tag")
+            if gh release download "${args[@]}" -R "$repo" -p "$pat" -O "$outf" --clobber; then
+              ok+=("$outf <- $repo $tag")
+            else
+              fail+=("$outf <- $repo $tag ($pat)")
+            fi
+          }
+          # rathole (amd64 gnu needs libssl3; musl v0.4.8 is used on Ubuntu 20.04 / Debian 11)
+          get rapiz1/rathole latest 'rathole-x86_64-unknown-linux-gnu.zip'   rathole-linux-amd64.zip
+          get rapiz1/rathole v0.4.8 'rathole-x86_64-unknown-linux-musl.zip'  rathole-musl-linux-amd64.zip
+          get rapiz1/rathole latest 'rathole-aarch64-unknown-linux-musl.zip' rathole-linux-arm64.zip
+          # backhaul
+          get Musixal/Backhaul latest 'backhaul_linux_amd64.tar.gz' backhaul-linux-amd64.tar.gz
+          get Musixal/Backhaul latest 'backhaul_linux_arm64.tar.gz' backhaul-linux-arm64.tar.gz
+          # frp
+          get fatedier/frp latest 'frp_*_linux_amd64.tar.gz' frp-linux-amd64.tar.gz
+          get fatedier/frp latest 'frp_*_linux_arm64.tar.gz' frp-linux-arm64.tar.gz
+          # gost v3
+          get go-gost/gost latest 'gost_*_linux_amd64.tar.gz' gost-linux-amd64.tar.gz
+          get go-gost/gost latest 'gost_*_linux_arm64.tar.gz' gost-linux-arm64.tar.gz
+          # hysteria 2
+          get apernet/hysteria latest 'hysteria-linux-amd64' hysteria-linux-amd64
+          get apernet/hysteria latest 'hysteria-linux-arm64' hysteria-linux-arm64
+          # xray
+          get XTLS/Xray-core latest 'Xray-linux-64.zip'        xray-linux-amd64.zip
+          get XTLS/Xray-core latest 'Xray-linux-arm64-v8a.zip' xray-linux-arm64.zip
+          {
+            echo "Updated: $(date -u +%Y-%m-%dT%H:%MZ)"; echo
+            printf '%s\n' "${ok[@]}"
+            if [ ${#fail[@]} -gt 0 ]; then echo; echo "NOT UPDATED (upload manually if needed):"; printf '%s\n' "${fail[@]}"; fi
+          } > VERSIONS.txt
+          cat VERSIONS.txt
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Publish to release "cores"
+        shell: bash
+        run: |
+          gh release view cores -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create cores -R "$GITHUB_REPOSITORY" --title "Cores" \
+              --notes "Tunnel cores used by the NETIFAY panel. Updated by the 'Update cores' workflow."
+          gh release upload cores -R "$GITHUB_REPOSITORY" out/* --clobber
+          # keep the tag on the latest commit of the default branch
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/cores" -f sha="$GITHUB_SHA" -F force=true >/dev/null

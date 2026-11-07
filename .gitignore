@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.bak
+*.tmp
+*.tar.gz
+*.zip
+config.json
+*.key
+*.crt
+*.p12
+.env
