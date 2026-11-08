@@ -33,7 +33,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from urllib.parse import urlparse
 
-VERSION = "2.6.3"
+VERSION = "2.6.4"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -4828,7 +4828,7 @@ main{max-width:1100px;margin:auto;padding:14px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
 .stat b{display:block;font-size:16px}.stat span{color:var(--mut);font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;align-items:start}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .ch{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .badge{font-size:12px;padding:2px 9px;border-radius:99px;font-weight:700}
