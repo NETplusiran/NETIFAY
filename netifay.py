@@ -34,7 +34,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from urllib.parse import urlparse
 
-VERSION = "2.8.4"
+VERSION = "2.8.5"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -5594,16 +5594,31 @@ def _install_self(src):
 _UPD_CACHE = {"t": 0.0, "data": None}
 
 
+def _fetch_latest_version(max_time=20):
+    """Light version probe: only the first 16 KB of netifay.py (VERSION is near the top)."""
+    err = ""
+    for url in _update_urls("netifay.py"):
+        rc, out = run(["curl", "-fsSL", "-r", "0-16383", "--connect-timeout", "10", "--max-time", str(max_time), url],
+                      timeout=max_time + 10)
+        if rc == 0 and out:
+            m = re.search(r'^VERSION = "(\d+(?:\.\d+){1,3})"$', out, re.M)
+            if m and "NETIFAY" in out[:3000]:
+                return m.group(1)
+            err = "invalid file"
+            continue
+        err = out.strip()[-200:]
+    raise ApiError("اتصال به گیت‌هاب برقرار نشد (%s). روی سرورهای ایران فایل netifay.py را دستی آپلود کنید" % (err or "?"))
+
+
 def a_update_status(p):
-    """Cached update check for the dashboard (GitHub is asked at most every 6 hours; failures are
-    remembered for 1 hour, so Iran servers without GitHub access are not slowed down)."""
+    """Cached update check for the dashboard. Only the head of netifay.py is downloaded; a result is
+    reused for 30 minutes, a failure for 1 hour (Iran servers without GitHub access are not slowed down)."""
     now = time.time()
     d = _UPD_CACHE["data"]
-    if d and now - _UPD_CACHE["t"] < (6 * 3600 if not d.get("error") else 3600) and d.get("current") == VERSION:
+    if d and now - _UPD_CACHE["t"] < (1800 if not d.get("error") else 3600) and d.get("current") == VERSION:
         return d
     try:
-        src = _fetch_text("netifay.py", 20)
-        latest = _check_panel_src(src)
+        latest = _fetch_latest_version()
         d = {"current": VERSION, "latest": latest, "newer": _ver_tuple(latest) > _ver_tuple(VERSION), "error": ""}
     except ApiError as e:
         d = {"current": VERSION, "latest": "", "newer": False, "error": str(e)[:200]}
@@ -6832,7 +6847,7 @@ function renderTunnels(){
     meter(_L('دیسک'),fb(s.disk_used)+' / '+fb(s.disk_total),s.disk_total?100*s.disk_used/s.disk_total:0)+
     _L('<div class="stat"><span>آپتایم سرور</span><b style="font-size:13px">')+fdur(s.uptime)+'</b></div></div>';
   $('#tStats').onclick=e=>{if(!e.target.closest('[data-upd]'))return;e.preventDefault();go('settings');setTimeout(()=>{const x=$('#updBox');if(x)x.scrollIntoView({behavior:'smooth'})},300)};
-  if(!S.updAsked){S.updAsked=1;api('update_status').then(d=>{S.upd=d;const b=$('#verBox');if(b)b.innerHTML=verHtml()}).catch(()=>{})}
+  if(!S.updAt||Date.now()-S.updAt>600000){S.updAt=Date.now();api('update_status').then(d=>{S.upd=d;const b=$('#verBox');if(b)b.innerHTML=verHtml()}).catch(()=>{})}
   $('#tWarn').innerHTML=(s.core||s.bh_core||Object.values(s.cores||{}).some(Boolean))?'':_L('<div class="warnbox">هیچ هسته‌ای نصب نیست. از تب «هسته» rathole یا Backhaul را نصب کنید.</div>');
   renderGrid();
 }
@@ -7763,7 +7778,7 @@ async function renderSettings(){
    _L('<p class="hint" style="margin-top:8px">سرورهای ایران به گیت‌هاب دسترسی ندارند: فایل netifay.py را از گیت‌هاب (یا فایل zip) بگیرید و با «آپلود دستی» نصب کنید.</p>')+'</div></div>';
   const updDone=d=>{$('#updRes').innerHTML='<div class="hint">'+_L('در حال نصب نسخه ')+'<b class="ltr">'+esc(d.to)+'</b>'+_L('؛ پنل ری‌استارت می‌شود...')+'</div>';
     let n=0;const t=setInterval(async()=>{n++;try{const r=await fetch(location.href,{cache:'no-store'});if(r.ok){clearInterval(t);location.reload()}}catch(e){}if(n>40){clearInterval(t);location.reload()}},1500)};
-  $('#updCheck').onclick=e=>busy(e.currentTarget,async()=>{const d=await api('update_check');
+  $('#updCheck').onclick=e=>busy(e.currentTarget,async()=>{const d=await api('update_check');S.upd=d;S.updAt=Date.now();
     $('#updRes').innerHTML=d.newer?'<div class="card" style="margin:0">'+_L('نسخه جدید موجود است: ')+'<b class="ltr">'+esc(d.latest)+'</b> '+_L('(فعلی: ')+'<span class="ltr">'+esc(d.current)+'</span>)<br><br><button class="btn p" id="updGo">'+ic('download')+_L('به‌روزرسانی')+'</button></div>'
       :'<div class="hint">'+ic('check')+' '+_L('پنل به‌روز است')+' (<span class="ltr">'+esc(d.current)+'</span>)</div>';
     const g=$('#updGo');if(g)g.onclick=ev=>modal(_L('به‌روزرسانی پنل'),'<p>'+_L('پنل به نسخه ')+'<b class="ltr">'+esc(d.latest)+'</b>'+_L(' به‌روز و ری‌استارت می‌شود. تانل‌ها قطع نمی‌شوند.')+'</p>',
