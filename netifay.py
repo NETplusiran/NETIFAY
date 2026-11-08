@@ -33,7 +33,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from urllib.parse import urlparse
 
-VERSION = "2.6.2"
+VERSION = "2.6.3"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -1123,7 +1123,11 @@ def check_conflicts(t):
             raise ApiError("بین این سرور و %s قبلا یک لینک %s ساخته شده (تانل %s). لینوکس فقط یک لینک %s بین دو سرور مشخص اجازه می‌دهد. "
                            "یا پورت‌ها را به همان تانل اضافه کنید، یا برای این تانل نوع لینک دیگری (GRE / IPIP / 6to4) انتخاب کنید، یا حالت «مستقیم»."
                            % (t["remote_domain"], lk, other, lk))
+    sp = _site_ports()
     for port, proto, kind in mine:
+        if proto == "tcp" and port in sp:
+            raise ApiError("پورت %d (%s) را سایت دامنه %s (%s) در بخش SSL استفاده می‌کند؛ پورت دیگری انتخاب کنید"
+                           % (port, kind, sp[port][0], sp[port][1]))
         if (port, proto) in taken:
             o_name, o_kind = taken[(port, proto)]
             raise ApiError("پورت %d/%s (%s) قبلا توسط تانل %s (%s) روی این سرور رزرو شده است"
@@ -1171,6 +1175,8 @@ def a_audit(p):
                 seen[key] = (t["name"], kind)
             if proto == "tcp" and port == panel_port:
                 add("err", "پورت %d در تانل %s با پورت پنل یکی است" % (port, t["name"]))
+            if proto == "tcp" and port in _site_ports():
+                add("err", "پورت %d در تانل %s با سایت دامنه %s یکی است" % (port, t["name"], _site_ports()[port][0]))
     # foreign processes on reserved ports
     procs = {"tcp": _listen_procs("tcp"), "udp": _listen_procs("udp")}
     for (port, proto), (owner, kind) in seen.items():
@@ -3458,6 +3464,26 @@ def _port_owner(port):
     return sorted(procs.get(port, set()))
 
 
+def _site_ports():
+    """{port: (domain, kind)} of TCP ports used by decoy sites (nginx)."""
+    res = {}
+    try:
+        sites = sites_load()
+    except Exception:
+        return res
+    for d, s_ in sites.items():
+        if s_.get("http80"):
+            res.setdefault(80, (d, "HTTP"))
+        for k, kind in (("https_port", "HTTPS"), ("fallback_port", "fallback")):
+            try:
+                v = int(s_.get(k) or 0)
+            except (TypeError, ValueError):
+                v = 0
+            if v:
+                res.setdefault(v, (d, kind))
+    return res
+
+
 def _check_site_port(port, domain, what):
     """A site port must not be used by a tunnel, the panel, or a non-nginx program."""
     if port == int(CONF.get("port", 0) or 0):
@@ -4147,6 +4173,8 @@ def a_panel_settings(p):
         for tp, proto, kind in _listener_ports(t):
             if proto == "tcp" and tp == port:
                 raise ApiError("پورت %d توسط تانل %s رزرو شده است" % (port, n))
+    if port in _site_ports():
+        raise ApiError("پورت %d را سایت دامنه %s استفاده می‌کند" % (port, _site_ports()[port][0]))
     CONF["port"] = port
     CONF["base"] = base
     save_conf()
@@ -4196,6 +4224,9 @@ UPLOAD_ACTIONS = ("update_upload", "core_upload", "backup_upload", "bh_core_uplo
 # Messages are written in Persian; when the browser asks for English (X-Lang: en) every
 # Persian fragment in the JSON response is replaced by its English counterpart.
 I18N_EN = {
+ "پورت %d (%s) را سایت دامنه %s (%s) در بخش SSL استفاده می‌کند؛ پورت دیگری انتخاب کنید": "Port %d (%s) is used by the site of domain %s (%s) in the SSL section; choose another port",
+ "پورت %d در تانل %s با سایت دامنه %s یکی است": "Port %d in tunnel %s is the same as the site of domain %s",
+
  "اتصال به گیت‌هاب برقرار نشد (%s). روی سرورهای ایران فایل netifay.py را دستی آپلود کنید": "Could not reach GitHub (%s). On Iran servers upload netifay.py manually",
  "فایل netifay.py معتبر نیست": "The netifay.py file is not valid",
  "فایل netifay.py خراب است: %s": "The netifay.py file is broken: %s",
