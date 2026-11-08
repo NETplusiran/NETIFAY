@@ -34,7 +34,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from urllib.parse import urlparse
 
-VERSION = "2.8.2"
+VERSION = "2.8.3"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -563,7 +563,7 @@ def v_resolver(x):
     s = str(x or "").strip() or "udp:8.8.8.8:53"
     if re.match(r"^[0-9.]+$", s) and is_ipv4(s):
         s = "udp:%s:53" % s
-    if not RESOLVER_RE.match(s):
+    if not RESOLVER_RE.match(s) or ".." in s or "//" in s.split("://", 1)[-1]:
         raise ApiError("ریزالور DNS نامعتبر است (مثال: udp:8.8.8.8:53 یا dot:dns.google:853 یا https://dns.google/dns-query)")
     return s
 
@@ -1404,7 +1404,7 @@ def write_all(t):
         return
     write_file(p_gre(t["name"], "rathole"), gen_link_script(link_dev(t["name"], t["link"]), t["local_domain"],
                                                            t["remote_domain"], t["gre_ip"], t["mtu"], t["link"],
-                                                           t["token"], t["name"]), 0o755)
+                                                           t["token"], t["name"]), 0o700)
     write_file(p_toml(t["name"], "rathole"), gen_toml(t), 0o600)
     write_file(p_service(t["name"], "rathole"), gen_service(t["name"]))
 
@@ -2312,8 +2312,10 @@ def build_bh(p, existing=None):
     t["remote_host"] = ""
     t["local_domain"] = t["remote_domain"] = t["gre_ip"] = t["peer_ip"] = ""
     t["mtu"] = 1476
-    if role == "kharej" and bh_is_ws(tr) and str(p.get("edge_ip") or "").strip():
-        t["edge_ip"] = v_ipv4(p.get("edge_ip"), "Edge IP")
+    if str(p.get("edge_ip") or "").strip():
+        ip_ = v_ipv4(p.get("edge_ip"), "Edge IP")      # always validated, only used for ws/wss
+        if role == "kharej" and bh_is_ws(tr):
+            t["edge_ip"] = ip_
     if mode == "gre":
         t["local_domain"] = v_host(p.get("local_domain"), "دامنه همین سرور")
         t["remote_domain"] = v_host(p.get("remote_domain"), "دامنه سرور مقابل")
@@ -2396,7 +2398,7 @@ def write_bh(t):
     if t["mode"] == "gre":
         write_file(p_gre(name, "backhaul"), gen_link_script(link_dev(name, t["link"]), t["local_domain"],
                                                           t["remote_domain"], t["gre_ip"], t["mtu"], t["link"],
-                                                          t["token"], name), 0o755)
+                                                          t["token"], name), 0o700)
     else:
         try:
             os.remove(p_gre(name, "backhaul"))
@@ -3200,7 +3202,7 @@ def write_gen(t):
     if t["mode"] == "gre":
         write_file(p_gre(name, eng), gen_link_script(link_dev(name, t["link"]), t["local_domain"],
                                                     t["remote_domain"], t["gre_ip"], t["mtu"], t["link"],
-                                                    t["token"], name), 0o755)
+                                                    t["token"], name), 0o700)
     else:
         try:
             os.remove(p_gre(name, eng))
@@ -3784,7 +3786,7 @@ def restore_rathole(name, toml, gre, item):
     write_file(p_toml(name, "rathole"), toml, 0o600)
     # the link script is re-generated from its values (never executed as-is from a backup)
     tok = (re.search(r'^\s*(?:default_)?token\s*=\s*"([^"]*)"', toml, re.M) or [None, ""])[1]
-    write_file(p_gre(name, "rathole"), gen_link_script(link_dev(name, lk), ld, rd, gip, mtu, lk, tok, name), 0o755)
+    write_file(p_gre(name, "rathole"), gen_link_script(link_dev(name, lk), ld, rd, gip, mtu, lk, tok, name), 0o700)
     write_file(p_service(name, "rathole"), gen_service(name))
     watcher_add(name)
     rc_choice = item.get("restart_cron") or ""
@@ -3885,7 +3887,7 @@ def restore_bh(name, toml, gre, item):
         ensure_bh_cert(name)
     if link == "gre":
         tok = (re.search(r'^\s*(?:default_)?token\s*=\s*"([^"]*)"', toml, re.M) or [None, ""])[1]
-        write_file(p_gre(name, "backhaul"), gen_link_script(link_dev(name, lk), ld, rd, gip, mtu, lk, tok, name), 0o755)
+        write_file(p_gre(name, "backhaul"), gen_link_script(link_dev(name, lk), ld, rd, gip, mtu, lk, tok, name), 0o700)
         watcher_add(name)
     else:
         try:
