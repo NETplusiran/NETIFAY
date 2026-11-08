@@ -43,7 +43,7 @@ netifay
   - **FEC (UDPspeeder)** و **Fake TCP (Phantun)** برای Hysteria2: جبران افت بسته و عبور UDP به شکل TCP
   - **MPTCP** برای Xray Reverse: تجمیع چند IP/مسیر
   - **تانل DNS (dnstt)** و **تانل ICMP (pingtunnel)** برای شرایط اضطراری
-- **کلاینت:** فرستادن پورت‌های سرور از داخل یک کانفیگ V2Ray (vless/vmess/trojan/ss)، OpenVPN یا WireGuard به پنل مقصد؛ فقط همان پورت‌ها از VPN رد می‌شوند و مسیر اصلی سرور و SSH دست نمی‌خورد
+- **کلاینت:** فرستادن پورت‌های سرور از داخل یک کانفیگ V2Ray (vless/vmess/trojan/ss)، OpenVPN یا WireGuard به پنل مقصد؛ فقط همان پورت‌ها از VPN رد می‌شوند و مسیر اصلی سرور و SSH دست نمی‌خورد. حالت دوم «خروجی اینترنت»: پنل فروش (مثلا سنایی) روی همین سرور است و خروجی کاربرها از کانفیگ می‌رود (پورت SOCKS روی 127.0.0.1، یا کل خروجی سرویس x-ui با OpenVPN/WireGuard)؛ اگر کانفیگ قطع شود ترافیک از IP سرور نشت نمی‌کند
 - **SSL و سایت پوششی:** گرفتن گواهی Let's Encrypt با certbot (روش HTTP یا DNS کلادفلر با ساخت خودکار رکورد A)، بالا آوردن سایت ظاهری روی دامنه با nginx، تمدید و دانلود گواهی؛ برای XHTTP / WS / gRPC / Trojan و fallback در Xray
 - **به‌روزرسانی از داخل پنل:** تنظیمات ← به‌روزرسانی پنل (از گیت‌هاب، یا آپلود دستی netifay.py برای سرورهای ایران)
 - **صفحه راهنما** داخل پنل: توضیح کامل هر تانل، ترکیب چند تانل و عیب‌یابی
@@ -76,7 +76,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/ins
 
 New in 2.8: AmneziaWG link type, FEC (UDPspeeder) and Fake TCP (Phantun) for Hysteria2, MPTCP multi-path for Xray Reverse, DNS (dnstt) and ICMP (pingtunnel) tunnels.
 
-New in 2.7: **Client** tab – forward ports through a V2Ray link, an OpenVPN profile or a WireGuard config (policy routing: only those ports use the VPN).
+New in 2.7: **Client** tab – forward ports through a V2Ray link, an OpenVPN profile or a WireGuard config (policy routing: only those ports use the VPN). New in 2.9: **internet exit** mode – the sales panel (e.g. Sanaei/x-ui) on the same server sends its users' traffic out through the config (local SOCKS on 127.0.0.1, or all outgoing traffic of a systemd service with OpenVPN/WireGuard); no leak from the server IP when the VPN drops.
 
 In-panel update: Settings → Panel update (from GitHub, or upload netifay.py on offline servers).
 
