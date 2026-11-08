@@ -39,6 +39,7 @@ netifay
 - **همه هسته‌ها از همین مخزن نصب می‌شوند** (تب «هسته» در پنل)
 - **جلوگیری از تداخل:** پورت تکراری بین تانل‌ها، پورت پنل، شبکه داخلی تکراری، دو لینک هم‌نوع به یک سرور، و دکمه «بررسی تداخل‌ها»
 - **SSL و سایت پوششی:** گرفتن گواهی Let's Encrypt با certbot (روش HTTP یا DNS کلادفلر با ساخت خودکار رکورد A)، بالا آوردن سایت ظاهری روی دامنه با nginx، تمدید و دانلود گواهی؛ برای XHTTP / WS / gRPC / Trojan و fallback در Xray
+- **به‌روزرسانی از داخل پنل:** تنظیمات ← به‌روزرسانی پنل (از گیت‌هاب، یا آپلود دستی netifay.py برای سرورهای ایران)
 - **صفحه راهنما** داخل پنل: توضیح کامل هر تانل، ترکیب چند تانل و عیب‌یابی
 
 ## امنیت
@@ -66,6 +67,8 @@ Links: GRE / IPIP / 6to4 from domains, direct, or Cloudflare CDN (Backhaul). Pur
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
 ```
+
+In-panel update: Settings → Panel update (from GitHub, or upload netifay.py on offline servers).
 
 New in 2.6: **SSL & decoy site** tab – Let's Encrypt certificates via certbot (HTTP or Cloudflare DNS, optional A record), an nginx decoy website on the domain, renew/download certs, for XHTTP/WS/gRPC/Trojan fallbacks.
 
