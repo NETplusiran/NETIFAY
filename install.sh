@@ -242,12 +242,14 @@ toggle_https() {
 }
 
 uninstall_panel() {
-    read -p "Remove the NETIFAY panel? Tunnels keep running. (y/n): " a
+    read -p "Remove the NETIFAY panel? Tunnels, clients and SSL sites keep running. (y/n): " a
     [[ "$a" == [yY] ]] || return
     systemctl disable --now netifay.service >/dev/null 2>&1
     rm -f "$UNIT"; systemctl daemon-reload
-    rm -rf "$APP_DIR" "$CONF_DIR" "$SHORTCUT"
-    echo -e "${G}NETIFAY panel removed. Your tunnels keep running.${N}"
+    # keep what keeps running without the panel: clients (clients/), SSL sites (sites.json, cloudflare.ini)
+    rm -f "$CONF" "$CONF_DIR/panel.crt" "$CONF_DIR/panel.key"
+    rm -rf "$APP_DIR" "$SHORTCUT"
+    echo -e "${G}NETIFAY panel removed. Your tunnels, clients and SSL sites keep running.${N}"
     exit 0
 }
 
