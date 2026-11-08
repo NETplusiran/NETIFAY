@@ -38,6 +38,11 @@ netifay
 - نمایش CPU / رم / دیسک و ترافیک هر تانل
 - **همه هسته‌ها از همین مخزن نصب می‌شوند** (تب «هسته» در پنل)
 - **جلوگیری از تداخل:** پورت تکراری بین تانل‌ها، پورت پنل، شبکه داخلی تکراری، دو لینک هم‌نوع به یک سرور، و دکمه «بررسی تداخل‌ها»
+- **تانل‌ها و قابلیت‌های ویژه (2.8):**
+  - **AmneziaWG** به‌عنوان نوع لینک: لینک رمزنگاری‌شده و مبهم به‌جای GRE (برای همه موتورها)
+  - **FEC (UDPspeeder)** و **Fake TCP (Phantun)** برای Hysteria2: جبران افت بسته و عبور UDP به شکل TCP
+  - **MPTCP** برای Xray Reverse: تجمیع چند IP/مسیر
+  - **تانل DNS (dnstt)** و **تانل ICMP (pingtunnel)** برای شرایط اضطراری
 - **کلاینت:** فرستادن پورت‌های سرور از داخل یک کانفیگ V2Ray (vless/vmess/trojan/ss)، OpenVPN یا WireGuard به پنل مقصد؛ فقط همان پورت‌ها از VPN رد می‌شوند و مسیر اصلی سرور و SSH دست نمی‌خورد
 - **SSL و سایت پوششی:** گرفتن گواهی Let's Encrypt با certbot (روش HTTP یا DNS کلادفلر با ساخت خودکار رکورد A)، بالا آوردن سایت ظاهری روی دامنه با nginx، تمدید و دانلود گواهی؛ برای XHTTP / WS / gRPC / Trojan و fallback در Xray
 - **به‌روزرسانی از داخل پنل:** تنظیمات ← به‌روزرسانی پنل (از گیت‌هاب، یا آپلود دستی netifay.py برای سرورهای ایران)
@@ -68,6 +73,8 @@ Links: GRE / IPIP / 6to4 from domains, direct, or Cloudflare CDN (Backhaul). Pur
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
 ```
+
+New in 2.8: AmneziaWG link type, FEC (UDPspeeder) and Fake TCP (Phantun) for Hysteria2, MPTCP multi-path for Xray Reverse, DNS (dnstt) and ICMP (pingtunnel) tunnels.
 
 New in 2.7: **Client** tab – forward ports through a V2Ray link, an OpenVPN profile or a WireGuard config (policy routing: only those ports use the VPN).
 

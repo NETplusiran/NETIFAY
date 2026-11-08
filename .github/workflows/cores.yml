@@ -51,10 +51,52 @@ jobs:
           # xray
           get XTLS/Xray-core latest 'Xray-linux-64.zip'        xray-linux-amd64.zip
           get XTLS/Xray-core latest 'Xray-linux-arm64-v8a.zip' xray-linux-arm64.zip
+          # phantun (Fake TCP) - official static builds
+          get dndx/phantun latest 'phantun_x86_64-unknown-linux-musl.zip'  phantun-linux-amd64.zip
+          get dndx/phantun latest 'phantun_aarch64-unknown-linux-musl.zip' phantun-linux-arm64.zip
+          printf '%s\n' "${ok[@]}" > ../ok.txt; printf '%s\n' "${fail[@]}" > ../fail.txt
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Build cores that have no ready Linux release (static)
+        shell: bash
+        run: |
+          set -u
+          sudo apt-get update -qq && sudo apt-get install -y -qq gcc-aarch64-linux-gnu g++-aarch64-linux-gnu >/dev/null
+          mkdir -p src && cd src
+          ok=(); fail=()
+          build() {  # build <label> <commands...>
+            local label="$1"; shift
+            if ( set -e; "$@" ); then ok+=("$label (built from source)"); else fail+=("$label (build failed)"); fi
+          }
+          git clone -q --depth 1 https://github.com/amnezia-vpn/amneziawg-go
+          git clone -q --depth 1 https://github.com/amnezia-vpn/amneziawg-tools
+          git clone -q --depth 1 https://github.com/esrrhs/pingtunnel
+          git clone -q --depth 1 https://github.com/wangyu-/UDPspeeder
+          git clone -q --depth 1 https://www.bamsoftware.com/git/dnstt.git || git clone -q --depth 1 https://github.com/Mygod/dnstt dnstt
+          SP="main.cpp log.cpp common.cpp lib/fec.cpp lib/rs.cpp crc32/Crc32.cpp packet.cpp delay_manager.cpp fd_manager.cpp connection.cpp fec_manager.cpp misc.cpp tunnel_client.cpp tunnel_server.cpp my_ev.cpp"
+          for arch in amd64 arm64; do
+            cc=gcc; cxx=g++; [ $arch = arm64 ] && { cc=aarch64-linux-gnu-gcc; cxx=aarch64-linux-gnu-g++; }
+            d=$PWD/bin-$arch; mkdir -p $d
+            build "amneziawg $arch" bash -c "cd amneziawg-go && CGO_ENABLED=0 GOARCH=$arch go build -trimpath -ldflags '-s -w' -o $d/amneziawg-go . && cd ../amneziawg-tools/src && make clean >/dev/null && make CC=$cc LDFLAGS=-static >/dev/null && cp wg $d/awg && cd $d && tar czf ../../out/amneziawg-linux-$arch.tar.gz amneziawg-go awg"
+            build "pingtunnel $arch" bash -c "cd pingtunnel && CGO_ENABLED=0 GOARCH=$arch go build -trimpath -ldflags '-s -w' -o $d/pingtunnel ./cmd && cd $d && tar czf ../../out/pingtunnel-linux-$arch.tar.gz pingtunnel"
+            build "dnstt $arch" bash -c "cd dnstt && CGO_ENABLED=0 GOARCH=$arch go build -trimpath -ldflags '-s -w' -o $d/dnstt-server ./dnstt-server && CGO_ENABLED=0 GOARCH=$arch go build -trimpath -ldflags '-s -w' -o $d/dnstt-client ./dnstt-client && cd $d && tar czf ../../out/dnstt-linux-$arch.tar.gz dnstt-server dnstt-client"
+            build "udpspeeder $arch" bash -c "cd UDPspeeder && echo 'const char *gitversion = \"$(git -C UDPspeeder rev-parse --short HEAD)\";' > git_version.h && $cxx -o $d/speederv2 -I. $SP -isystem libev -std=c++11 -O2 -static -lrt && cd $d && tar czf ../../out/udpspeeder-linux-$arch.tar.gz speederv2"
+          done
+          cd ..
+          printf '%s\n' "${ok[@]}" >> ok.txt; printf '%s\n' "${fail[@]}" >> fail.txt
+
+      - name: Versions and checksums
+        shell: bash
+        run: |
+          cd out
           {
             echo "Updated: $(date -u +%Y-%m-%dT%H:%MZ)"; echo
-            printf '%s\n' "${ok[@]}"
-            if [ ${#fail[@]} -gt 0 ]; then echo; echo "NOT UPDATED (upload manually if needed):"; printf '%s\n' "${fail[@]}"; fi
+            grep -v '^$' ../ok.txt
+            if grep -q . ../fail.txt; then echo; echo "NOT UPDATED (upload manually if needed):"; grep -v '^$' ../fail.txt; fi
           } > VERSIONS.txt
           cat VERSIONS.txt
           sha256sum * > SHA256SUMS.txt
