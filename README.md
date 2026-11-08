@@ -38,6 +38,7 @@ netifay
 - نمایش CPU / رم / دیسک و ترافیک هر تانل
 - **همه هسته‌ها از همین مخزن نصب می‌شوند** (تب «هسته» در پنل)
 - **جلوگیری از تداخل:** پورت تکراری بین تانل‌ها، پورت پنل، شبکه داخلی تکراری، دو لینک هم‌نوع به یک سرور، و دکمه «بررسی تداخل‌ها»
+- **کلاینت:** فرستادن پورت‌های سرور از داخل یک کانفیگ V2Ray (vless/vmess/trojan/ss)، OpenVPN یا WireGuard به پنل مقصد؛ فقط همان پورت‌ها از VPN رد می‌شوند و مسیر اصلی سرور و SSH دست نمی‌خورد
 - **SSL و سایت پوششی:** گرفتن گواهی Let's Encrypt با certbot (روش HTTP یا DNS کلادفلر با ساخت خودکار رکورد A)، بالا آوردن سایت ظاهری روی دامنه با nginx، تمدید و دانلود گواهی؛ برای XHTTP / WS / gRPC / Trojan و fallback در Xray
 - **به‌روزرسانی از داخل پنل:** تنظیمات ← به‌روزرسانی پنل (از گیت‌هاب، یا آپلود دستی netifay.py برای سرورهای ایران)
 - **صفحه راهنما** داخل پنل: توضیح کامل هر تانل، ترکیب چند تانل و عیب‌یابی
@@ -67,6 +68,8 @@ Links: GRE / IPIP / 6to4 from domains, direct, or Cloudflare CDN (Backhaul). Pur
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
 ```
+
+New in 2.7: **Client** tab – forward ports through a V2Ray link, an OpenVPN profile or a WireGuard config (policy routing: only those ports use the VPN).
 
 In-panel update: Settings → Panel update (from GitHub, or upload netifay.py on offline servers).
 
