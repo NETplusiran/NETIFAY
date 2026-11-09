@@ -34,7 +34,7 @@ netifay
 - **اتصال:** لینک شبکه (GRE، IPIP، 6to4) بر اساس دامنه، مستقیم، CDN کلادفلر (Backhaul)
 - ساخت، ویرایش، کلون، حذف، ری‌استارت زمان‌بندی‌شده، لاگ، تست پورت‌ها
 - بکاپ و بازیابی فقط کانفیگ تانل‌ها (بررسی هسته هر تانل قبل از بازیابی، بکاپ خودکار قبل از هر بازیابی)
-- رابط فارسی و انگلیسی، تم روز و شب، سازگار با موبایل
+- رابط چهار زبانه: فارسی، انگلیسی، چینی و روسی (راهنما و پیام‌ها هم ترجمه شده‌اند)، تم روز و شب، سازگار با موبایل
 - نمایش CPU / رم / دیسک و ترافیک هر تانل
 - **همه هسته‌ها از همین مخزن نصب می‌شوند** (تب «هسته» در پنل)
 - **جلوگیری از تداخل:** پورت تکراری بین تانل‌ها، پورت پنل، شبکه داخلی تکراری، دو لینک هم‌نوع به یک سرور، و دکمه «بررسی تداخل‌ها»
@@ -69,6 +69,7 @@ Rathole و Backhaul (GRE) روی سرور واقعی استفاده شده‌ا�
 **NETIFAY** – web panel for server-to-server tunnels.
 Engines: Rathole, Backhaul, FRP, Gost, Hysteria2, Xray Reverse (REALITY), iptables.
 Links: GRE / IPIP / 6to4 from domains, direct, or Cloudflare CDN (Backhaul). Pure Python 3, single file.
+UI languages: Persian, English, Chinese (中文) and Russian (Русский) — the guide and server messages are translated too.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
