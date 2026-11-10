@@ -2,7 +2,9 @@
 
 # NETIFAY
 
-پنل وب ساخت و مدیریت تانل بین سرور ایران و خارج — ۷ موتور تانل، لینک GRE / IPIP / 6to4، بکاپ، تست پورت و HTTPS.
+پنل وب ساخت و مدیریت تانل بین سرور داخلی (ایران) و خارج — ۹ موتور تانل، لینک GRE / IPIP / 6to4 / AmneziaWG، کلاینت V2Ray / OpenVPN / WireGuard، سایت و گواهی SSL، بکاپ و راهنمای کامل داخل پنل. یک فایل پایتون، بدون پکیج اضافه.
+
+**زبان‌ها:** فارسی · English · 中文 · Русский — [English](#english) · [中文](#中文) · [Русский](#русский)
 
 ## نصب (یک خط)
 
@@ -12,8 +14,7 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
 ```
 
-پورت، مسیر مخفی، نام کاربری و رمز (حداقل ۸ کاراکتر) را وارد کنید؛ آدرس پنل نمایش داده می‌شود.
-بعد از نصب، منو همیشه با دستور زیر باز می‌شود:
+پورت، مسیر مخفی، نام کاربری و رمز (حداقل ۸ کاراکتر) را وارد کنید؛ آدرس پنل نمایش داده می‌شود. بعد از نصب، منو همیشه با این دستور باز می‌شود:
 
 ```bash
 netifay
@@ -24,43 +25,59 @@ netifay
 | 1 | نصب / به‌روزرسانی از گیت‌هاب (تنظیمات و تانل‌ها حفظ می‌شوند) |
 | 2 | نمایش آدرس پنل |
 | 3 | تغییر نام کاربری و رمز |
+| 4 | ری‌استارت پنل |
+| 5 | لاگ پنل |
+| 6 | حذف پنل (تانل‌ها، کلاینت‌ها و سایت‌ها کار می‌کنند و حذف نمی‌شوند) |
 | 7 | روشن/خاموش کردن دسترسی وب از بیرون |
 | 8 | روشن/خاموش کردن HTTPS |
-| 6 | حذف پنل (تانل‌ها دست نمی‌خورند) |
+
+**پیش‌نیاز:** Ubuntu 20.04 به بالا (توزیع‌های دبیان‌پایه با apt هم کار می‌کنند ولی کمتر تست شده‌اند)، دسترسی root، Python 3.8+. برای MPTCP و حالت «کل خروجی یک سرویس» کرنل 5.6+ و cgroup v2 (Ubuntu 22.04 به بالا) لازم است.
+
+## موتورهای تانل
+
+| موتور | جهت اتصال | حالت‌ها | مناسب برای |
+|---|---|---|---|
+| **Backhaul** (پیشنهادی، tcpmux) | خارج ← ایران | لینک، مستقیم، CDN کلادفلر | بیشتر سرورها، کاربر زیاد، پنهان کردن IP پشت CDN |
+| **Rathole** | خارج ← ایران | لینک | سرور ضعیف، سبک‌ترین |
+| **FRP** | خارج ← ایران | لینک، مستقیم | پایداری، kcp/quic برای خط پرافت |
+| **Gost** | ایران ← خارج | لینک، مستقیم | ترنسپورت‌های متنوع (tls / grpc / ws / ...) |
+| **Hysteria2** (+FEC، +Fake TCP) | ایران ← خارج | لینک، مستقیم | خط پرافت؛ با Fake TCP وقتی UDP بسته است |
+| **Xray Reverse** (VLESS + REALITY، +MPTCP) | خارج ← ایران | لینک، مستقیم | بیشترین مخفی‌کاری؛ تجمیع چند IP |
+| **iptables** | ایران ← خارج | لینک، مستقیم | کمترین سربار، بدون برنامه اضافه |
+| **تانل DNS** (dnstt) | ایران ← خارج | مستقیم | اضطراری، وقتی فقط DNS باز است |
+| **تانل ICMP** (pingtunnel) | ایران ← خارج | مستقیم | اضطراری، وقتی فقط پینگ باز است |
+
+**نوع لینک شبکه:** GRE · IPIP · 6to4 · **AmneziaWG** (وایرگارد رمزنگاری‌شده و مبهم که DPI تشخیصش نمی‌دهد). لینک بر اساس دامنه ساخته می‌شود و با عوض شدن IP خودکار به‌روز می‌شود.
 
 ## امکانات
 
-- **موتورها:** Rathole · Backhaul · FRP · Gost · Hysteria2 · Xray Reverse (REALITY) · iptables
-- **اتصال:** لینک شبکه (GRE، IPIP، 6to4) بر اساس دامنه، مستقیم، CDN کلادفلر (Backhaul)
-- ساخت، ویرایش، کلون، حذف، ری‌استارت زمان‌بندی‌شده، لاگ، تست پورت‌ها
-- بکاپ و بازیابی فقط کانفیگ تانل‌ها (بررسی هسته هر تانل قبل از بازیابی، بکاپ خودکار قبل از هر بازیابی)
-- گواهی معتبر Let's Encrypt برای خود پنل روی دامنه (مستقیم یا پشت CDN کلادفلر، با nginx و certbot، تمدید خودکار، تغییر خودکار پورت برای CDN)
-- ترافیک لحظه‌ای سرور (دانلود / آپلود) در صفحه اول
-- رابط چهار زبانه: فارسی، انگلیسی، چینی و روسی (راهنما و پیام‌ها هم ترجمه شده‌اند)، تم روز و شب، سازگار با موبایل
-- نمایش CPU / رم / دیسک و ترافیک هر تانل
-- **همه هسته‌ها از همین مخزن نصب می‌شوند** (تب «هسته» در پنل)
-- **جلوگیری از تداخل:** پورت تکراری بین تانل‌ها، پورت پنل، شبکه داخلی تکراری، دو لینک هم‌نوع به یک سرور، و دکمه «بررسی تداخل‌ها»
-- **تانل‌ها و قابلیت‌های ویژه (2.8):**
-  - **AmneziaWG** به‌عنوان نوع لینک: لینک رمزنگاری‌شده و مبهم به‌جای GRE (برای همه موتورها)
-  - **FEC (UDPspeeder)** و **Fake TCP (Phantun)** برای Hysteria2: جبران افت بسته و عبور UDP به شکل TCP
-  - **MPTCP** برای Xray Reverse: تجمیع چند IP/مسیر
-  - **تانل DNS (dnstt)** و **تانل ICMP (pingtunnel)** برای شرایط اضطراری
-- **کلاینت:** فرستادن پورت‌های سرور از داخل یک کانفیگ V2Ray (vless/vmess/trojan/ss)، OpenVPN یا WireGuard به پنل مقصد؛ فقط همان پورت‌ها از VPN رد می‌شوند و مسیر اصلی سرور و SSH دست نمی‌خورد. حالت دوم «خروجی اینترنت»: پنل فروش (مثلا سنایی) روی همین سرور است و خروجی کاربرها از کانفیگ می‌رود (پورت SOCKS روی 127.0.0.1، یا کل خروجی سرویس x-ui با OpenVPN/WireGuard)؛ اگر کانفیگ قطع شود ترافیک از IP سرور نشت نمی‌کند
-- **SSL و سایت پوششی:** گرفتن گواهی Let's Encrypt با certbot (روش HTTP یا DNS کلادفلر با ساخت خودکار رکورد A)، بالا آوردن سایت ظاهری روی دامنه با nginx، تمدید و دانلود گواهی؛ برای XHTTP / WS / gRPC / Trojan و fallback در Xray
-- **به‌روزرسانی از داخل پنل:** تنظیمات ← به‌روزرسانی پنل (از گیت‌هاب، یا آپلود دستی netifay.py برای سرورهای ایران)
-- **صفحه راهنما** داخل پنل: توضیح کامل هر تانل، ترکیب چند تانل و عیب‌یابی
+- **مدیریت تانل:** ساخت، ویرایش، کلون، حذف، ری‌استارت زمان‌بندی‌شده، لاگ، تست پینگ لینک و تست واقعی پورت‌ها تا سرویس مقصد
+- **جلوگیری از تداخل:** پورت تکراری بین تانل‌ها، کلاینت‌ها، سایت‌ها و پورت پنل؛ شبکه داخلی تکراری؛ دو لینک هم‌نوع به یک سرور؛ دکمه «بررسی تداخل‌ها»
+- **تانل تو در تو:** ایران ← سرور واسط ← چند پنل؛ IP پنل‌ها از ایران دیده نمی‌شود
+- **کلاینت** (بدون سرور خارج، فقط با یک کانفیگ V2Ray / OpenVPN / WireGuard):
+  - *فوروارد پورت* به پنلی که جای دیگری است؛ فقط همان پورت‌ها از VPN رد می‌شوند
+  - *خروجی اینترنت* برای پنل فروش روی همین سرور (مثلا 3x-ui / سنایی): پورت SOCKS روی 127.0.0.1، یا کل خروجی سرویس x-ui؛ اگر کانفیگ قطع شود ترافیک از IP سرور نشت نمی‌کند
+  - SSH، مسیر اصلی سرور و بقیه تانل‌ها دست نمی‌خورند
+- **SSL و سایت پوششی:** گواهی Let's Encrypt با certbot (روش HTTP یا DNS کلادفلر با ساخت خودکار رکورد A) و یک سایت ظاهری با nginx روی دامنه؛ برای XHTTP / WS / gRPC / Trojan، fallback و REALITY با دامنه خودتان
+- **گواهی معتبر برای خود پنل:** پنل روی `https://دامنه` بدون هشدار مرورگر؛ مستقیم یا پشت CDN کلادفلر (پورت پنل در صورت نیاز خودکار به یکی از پورت‌های مجاز کلادفلر عوض می‌شود)؛ تمدید خودکار
+- **بکاپ و بازیابی** کانفیگ تانل‌ها با بررسی هسته هر تانل و بکاپ خودکار قبل از هر بازیابی
+- **هسته‌ها** همه از همین مخزن نصب می‌شوند (تب «هسته»)؛ مناسب سرورهایی که دسترسی محدود دارند
+- **به‌روزرسانی از داخل پنل:** از گیت‌هاب، یا آپلود دستی `netifay.py` برای سرورهای ایران؛ اعلان نسخه جدید در صفحه اول
+- **داشبورد:** تانل‌های فعال، نسخه پنل، آپتایم، ترافیک لحظه‌ای دانلود/آپلود، CPU، رم، دیسک و ترافیک هر تانل
+- **بهینه‌سازی شبکه** با یک کلیک (BBR، بافرهای بزرگ‌تر، محدودیت فایل‌ها)
+- **راهنمای کامل داخل پنل:** انتخاب تانل مناسب، توضیح هر موتور، ترکیب تانل‌ها، عیب‌یابی و چک‌لیست
+- **رابط چهار زبانه** (فارسی، انگلیسی، چینی، روسی) با ترجمه راهنما و پیام‌ها؛ تم روز و شب؛ سازگار با موبایل
 
 ## امنیت
 
-- بعد از نصب **HTTPS را روشن کنید** (گزینه ۸).
-- وقتی کارتان تمام شد دسترسی وب از بیرون را ببندید (گزینه ۷).
-- پنل با دسترسی root اجرا می‌شود؛ رمز قوی انتخاب کنید.
-- فایل‌های بکاپ شامل توکن تانل‌ها هستند؛ آن‌ها را امن نگه دارید.
+- بعد از نصب **HTTPS را روشن کنید** (گزینه ۸) یا از تنظیمات برای پنل گواهی دامنه بگیرید.
+- مسیر مخفی بگذارید و وقتی کارتان تمام شد دسترسی وب از بیرون را ببندید (گزینه ۷).
+- پنل با دسترسی root اجرا می‌شود؛ رمز قوی انتخاب کنید. ورود ناموفق محدود می‌شود.
+- کانفیگ‌ها، کلیدها و فایل‌های بکاپ فقط برای root قابل خواندن ذخیره می‌شوند؛ بکاپ‌ها شامل توکن تانل‌ها هستند، امن نگه‌شان دارید.
 
 ## وضعیت
 
-Rathole و Backhaul (GRE) روی سرور واقعی استفاده شده‌اند. موتورهای FRP، Gost، Hysteria2، Xray Reverse، iptables و حالت CDN **آزمایشی** هستند؛ اول با یک تانل آزمایشی امتحان کنید.
-
+Rathole و Backhaul (لینک GRE) روی سرور واقعی استفاده شده‌اند. بقیه موتورها، کلاینت و تانل‌های ویژه با هسته‌های واقعی در محیط آزمایشی تست شده‌اند ولی هنوز **آزمایشی** هستند؛ اول با یک تانل آزمایشی و یکی دو پورت امتحان کنید و «تست پورت‌ها» را بزنید.
 
 </div>
 
@@ -68,36 +85,74 @@ Rathole و Backhaul (GRE) روی سرور واقعی استفاده شده‌ا�
 
 ## English
 
-**NETIFAY** – web panel for server-to-server tunnels.
-Engines: Rathole, Backhaul, FRP, Gost, Hysteria2, Xray Reverse (REALITY), iptables.
-Links: GRE / IPIP / 6to4 from domains, direct, or Cloudflare CDN (Backhaul). Pure Python 3, single file.
-Panel HTTPS with a real Let's Encrypt certificate on your own domain (direct or behind Cloudflare CDN, nginx + certbot, auto-renewal); live server download/upload on the dashboard.
-UI languages: Persian, English, Chinese (中文) and Russian (Русский) — the guide and server messages are translated too.
+**NETIFAY** is a web panel for building and managing tunnels between a domestic server (users connect to it) and an abroad server (the main service runs there). Pure Python 3, a single file, no pip packages.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
 ```
 
-New in 2.8: AmneziaWG link type, FEC (UDPspeeder) and Fake TCP (Phantun) for Hysteria2, MPTCP multi-path for Xray Reverse, DNS (dnstt) and ICMP (pingtunnel) tunnels.
+Run it on **both servers** as root. Afterwards open the menu with `netifay` (1 install/update · 2 show URL · 3 reset login · 4 restart · 5 logs · 6 uninstall, tunnels keep running · 7 external web access on/off · 8 HTTPS on/off).
 
-New in 2.7: **Client** tab – forward ports through a V2Ray link, an OpenVPN profile or a WireGuard config (policy routing: only those ports use the VPN). New in 2.9: **internet exit** mode – the sales panel (e.g. Sanaei/x-ui) on the same server sends its users' traffic out through the config (local SOCKS on 127.0.0.1, or all outgoing traffic of a systemd service with OpenVPN/WireGuard); no leak from the server IP when the VPN drops.
+Requirements: Ubuntu 20.04+ (other apt-based Debian systems should work but are less tested), root, Python 3.8+. MPTCP and the "whole service exit" client mode need kernel 5.6+ with cgroup v2 (Ubuntu 22.04+).
 
-In-panel update: Settings → Panel update (from GitHub, or upload netifay.py on offline servers).
+**Engines:** Backhaul (recommended, tcpmux; also Cloudflare CDN mode) · Rathole · FRP · Gost · Hysteria2 (+FEC via UDPspeeder, +Fake TCP via Phantun) · Xray Reverse (VLESS + REALITY, +MPTCP) · iptables · DNS tunnel (dnstt) · ICMP tunnel (pingtunnel).
+**Network links:** GRE / IPIP / 6to4 / AmneziaWG (encrypted and obfuscated), built from domains and updated automatically when an IP changes.
 
-New in 2.6: **SSL & decoy site** tab – Let's Encrypt certificates via certbot (HTTP or Cloudflare DNS, optional A record), an nginx decoy website on the domain, renew/download certs, for XHTTP/WS/gRPC/Trojan fallbacks.
+**Features**
+- Create, edit, clone, delete, scheduled restarts, logs, link ping test and real end-to-end port tests
+- Conflict prevention across tunnels, clients, SSL sites and the panel port, plus a "Check conflicts" audit
+- Nested (chained) tunnels through an intermediate server
+- **Client** tab, with only a V2Ray / OpenVPN / WireGuard config and no abroad server of your own: forward ports to a panel elsewhere, or give a sales panel on the same server (e.g. 3x-ui) an internet exit (local SOCKS on 127.0.0.1, or all outgoing traffic of a systemd service). Nothing leaks from the server IP when the VPN drops; SSH and the default route are untouched.
+- **SSL & decoy site:** Let's Encrypt via certbot (HTTP or Cloudflare DNS with automatic A record) and an nginx decoy website, for XHTTP / WS / gRPC / Trojan fallbacks and REALITY with your own domain
+- **Panel certificate:** the panel itself on `https://your-domain` with a valid certificate, directly or behind Cloudflare CDN (the panel port is switched to a Cloudflare HTTPS port if needed); auto-renewal
+- Backup and restore of tunnel configs, with a core check per tunnel and an automatic backup before every restore
+- All cores installed from this repository; in-panel update from GitHub or by uploading `netifay.py`
+- Dashboard: active tunnels, panel version and update notice, uptime, live download/upload, CPU, RAM, disk, per-tunnel traffic
+- One-click network optimization (BBR, larger buffers, file limits)
+- Complete in-panel guide; UI, guide and server messages in Persian, English, Chinese and Russian; day/night themes; mobile friendly
 
-Then run `netifay` for the menu. Turn on HTTPS (option 8) right away.
+**Security:** turn on HTTPS (option 8) or a domain certificate right after installing, set a secret path, and close external web access when you are done (option 7). Configs, keys and backups are stored readable by root only.
+
+**Status:** Rathole and Backhaul (GRE) are used on real servers. The other engines, the client and the special tunnels were tested with the real cores in a lab but are still **experimental**: start with a test tunnel and press "Test ports".
+
+---
+
+## 中文
+
+**NETIFAY** 是一个用于在国内服务器和国外服务器之间搭建和管理隧道的网页面板：单个 Python 文件，无需额外依赖。在**两台服务器**上以 root 运行：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
+```
+
+之后用 `netifay` 打开菜单。支持 Backhaul（推荐）、Rathole、FRP、Gost、Hysteria2（FEC / Fake TCP）、Xray Reverse（VLESS + REALITY）、iptables、DNS 隧道和 ICMP 隧道；链路类型 GRE / IPIP / 6to4 / AmneziaWG。还提供客户端（V2Ray / OpenVPN / WireGuard）、SSL 与伪装站点、面板的有效证书（直连或 Cloudflare CDN）、备份与恢复以及完整的面板内指南。界面支持中文。安装后请立即开启 HTTPS（菜单选项 8）。
+
+## Русский
+
+**NETIFAY** — веб-панель для создания и управления туннелями между внутренним и зарубежным серверами: один файл Python, без дополнительных пакетов. Запустите на **обоих серверах** от root:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/NETplusiran/NETIFAY/main/install.sh)
+```
+
+Затем откройте меню командой `netifay`. Движки: Backhaul (рекомендуется), Rathole, FRP, Gost, Hysteria2 (FEC / Fake TCP), Xray Reverse (VLESS + REALITY), iptables, DNS- и ICMP-туннели; линки GRE / IPIP / 6to4 / AmneziaWG. Также есть клиент (V2Ray / OpenVPN / WireGuard), SSL и сайт-прикрытие, действительный сертификат для самой панели (напрямую или через Cloudflare CDN), резервное копирование и полное руководство в панели. Интерфейс на русском языке. Сразу после установки включите HTTPS (пункт меню 8).
+
+---
 
 ### Cores
 
-All cores are downloaded from this repository's release **`cores`**, which the
-`Update cores` GitHub Action fills from the official projects:
+All cores are downloaded from this repository's release **`cores`**, which the `Update cores` GitHub Action fills from the official projects:
 [rathole](https://github.com/rapiz1/rathole) ·
 [Backhaul](https://github.com/Musixal/Backhaul) ·
 [frp](https://github.com/fatedier/frp) ·
 [gost](https://github.com/go-gost/gost) ·
 [Hysteria](https://github.com/apernet/hysteria) ·
-[Xray-core](https://github.com/XTLS/Xray-core).
+[Xray-core](https://github.com/XTLS/Xray-core) ·
+[dnstt](https://www.bamsoftware.com/software/dnstt/) ·
+[pingtunnel](https://github.com/esrrhs/pingtunnel) ·
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go) ([tools](https://github.com/amnezia-vpn/amneziawg-tools)) ·
+[UDPspeeder](https://github.com/wangyu-/UDPspeeder) ·
+[Phantun](https://github.com/dndx/phantun).
 Each core keeps its own license.
 
 The GRE-over-domain approach is based on [Musixal/Rathole-Tunnel](https://github.com/Musixal/Rathole-Tunnel).
