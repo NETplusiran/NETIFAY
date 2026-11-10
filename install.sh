@@ -154,6 +154,10 @@ install_files() {
         fi
     fi
     rm -rf "$tmp"
+    # the "netifay" command runs the installed menu script: keep a copy even when only netifay.py came over
+    if [[ ! -f "${APP_DIR}/install.sh" && -f "${BASH_SOURCE[0]}" ]]; then
+        cp -f "${BASH_SOURCE[0]}" "${APP_DIR}/install.sh" 2>/dev/null
+    fi
     chmod 700 "$APP"
     [[ -f "${APP_DIR}/install.sh" ]] && chmod 700 "${APP_DIR}/install.sh"
     printf '#!/bin/bash\nexec bash %s "$@"\n' "${APP_DIR}/install.sh" > "$SHORTCUT"
