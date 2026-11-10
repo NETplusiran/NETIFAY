@@ -65,6 +65,7 @@ netifay
 - **به‌روزرسانی از داخل پنل:** از گیت‌هاب، یا آپلود دستی `netifay.py` برای سرورهای ایران؛ اعلان نسخه جدید در صفحه اول
 - **داشبورد:** تانل‌های فعال، نسخه پنل، آپتایم، ترافیک لحظه‌ای دانلود/آپلود، CPU، رم، دیسک و ترافیک هر تانل
 - **بهینه‌سازی شبکه** با یک کلیک (BBR، بافرهای بزرگ‌تر، محدودیت فایل‌ها)
+- **فایروال و iptables** با یک کلیک: conntrack بزرگ‌تر با تایم‌اوت کوتاه، ماژول‌های کرنل، rp_filter نرم، باز کردن پورت‌ها در ufw / firewalld، MSS clamp؛ نگهبان پنل هر ۲۰ ثانیه قوانین را چک می‌کند و اگر ufw، داکر یا اسکریپت دیگری پاکشان کند خودکار برمی‌گرداند
 - **راهنمای کامل داخل پنل:** انتخاب تانل مناسب، توضیح هر موتور، ترکیب تانل‌ها، عیب‌یابی و چک‌لیست
 - **رابط چهار زبانه** (فارسی، انگلیسی، چینی، روسی) با ترجمه راهنما و پیام‌ها؛ تم روز و شب؛ سازگار با موبایل
 
@@ -105,6 +106,7 @@ Requirements: Ubuntu 20.04+ (other apt-based Debian systems should work but are 
 - All cores installed from this repository; in-panel update from GitHub or by uploading `netifay.py`
 - Dashboard: active tunnels, panel version and update notice, uptime, live download/upload, CPU, RAM, disk, per-tunnel traffic
 - One-click network optimization (BBR, larger buffers, file limits)
+- One-click firewall / iptables hardening: larger conntrack table with short timeouts, kernel modules, loose rp_filter, ports opened in ufw / firewalld, MSS clamping; a guard checks the rules every 20 s and restores them if ufw, Docker or another script removes them
 - Complete in-panel guide; UI, guide and server messages in Persian, English, Chinese and Russian; day/night themes; mobile friendly
 
 **Security:** turn on HTTPS (option 8) or a domain certificate right after installing, set a secret path, and close external web access when you are done (option 7). Configs, keys and backups are stored readable by root only.
