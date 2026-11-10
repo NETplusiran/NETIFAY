@@ -34,6 +34,8 @@ netifay
 - **اتصال:** لینک شبکه (GRE، IPIP، 6to4) بر اساس دامنه، مستقیم، CDN کلادفلر (Backhaul)
 - ساخت، ویرایش، کلون، حذف، ری‌استارت زمان‌بندی‌شده، لاگ، تست پورت‌ها
 - بکاپ و بازیابی فقط کانفیگ تانل‌ها (بررسی هسته هر تانل قبل از بازیابی، بکاپ خودکار قبل از هر بازیابی)
+- گواهی معتبر Let's Encrypt برای خود پنل روی دامنه (مستقیم یا پشت CDN کلادفلر، با nginx و certbot، تمدید خودکار، تغییر خودکار پورت برای CDN)
+- ترافیک لحظه‌ای سرور (دانلود / آپلود) در صفحه اول
 - رابط چهار زبانه: فارسی، انگلیسی، چینی و روسی (راهنما و پیام‌ها هم ترجمه شده‌اند)، تم روز و شب، سازگار با موبایل
 - نمایش CPU / رم / دیسک و ترافیک هر تانل
 - **همه هسته‌ها از همین مخزن نصب می‌شوند** (تب «هسته» در پنل)
@@ -69,6 +71,7 @@ Rathole و Backhaul (GRE) روی سرور واقعی استفاده شده‌ا�
 **NETIFAY** – web panel for server-to-server tunnels.
 Engines: Rathole, Backhaul, FRP, Gost, Hysteria2, Xray Reverse (REALITY), iptables.
 Links: GRE / IPIP / 6to4 from domains, direct, or Cloudflare CDN (Backhaul). Pure Python 3, single file.
+Panel HTTPS with a real Let's Encrypt certificate on your own domain (direct or behind Cloudflare CDN, nginx + certbot, auto-renewal); live server download/upload on the dashboard.
 UI languages: Persian, English, Chinese (中文) and Russian (Русский) — the guide and server messages are translated too.
 
 ```bash
