@@ -75,10 +75,6 @@ netifay
 - پنل با دسترسی root اجرا می‌شود؛ رمز قوی انتخاب کنید. ورود ناموفق محدود می‌شود.
 - کانفیگ‌ها، کلیدها و فایل‌های بکاپ فقط برای root قابل خواندن ذخیره می‌شوند؛ بکاپ‌ها شامل توکن تانل‌ها هستند، امن نگه‌شان دارید.
 
-## وضعیت
-
-Rathole و Backhaul (لینک GRE) روی سرور واقعی استفاده شده‌اند. بقیه موتورها، کلاینت و تانل‌های ویژه با هسته‌های واقعی در محیط آزمایشی تست شده‌اند ولی هنوز **آزمایشی** هستند؛ اول با یک تانل آزمایشی و یکی دو پورت امتحان کنید و «تست پورت‌ها» را بزنید.
-
 </div>
 
 ---
@@ -113,7 +109,6 @@ Requirements: Ubuntu 20.04+ (other apt-based Debian systems should work but are 
 
 **Security:** turn on HTTPS (option 8) or a domain certificate right after installing, set a secret path, and close external web access when you are done (option 7). Configs, keys and backups are stored readable by root only.
 
-**Status:** Rathole and Backhaul (GRE) are used on real servers. The other engines, the client and the special tunnels were tested with the real cores in a lab but are still **experimental**: start with a test tunnel and press "Test ports".
 
 ---
 
