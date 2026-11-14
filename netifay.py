@@ -36,7 +36,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies
 from urllib.parse import urlparse
 
-VERSION = "2.9.6"
+VERSION = "2.9.7"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -8905,12 +8905,12 @@ function renderTunnels(){
   const s=S.sys,el=$('#tab-tunnels');
   $('#hostName').textContent=s.hostname||'';
   if(!$('#tStats')){
-    el.innerHTML='<div id="tStats"></div><div id="tTraffic" class="card trbox"><span class="spin"></span></div><div id="tWarn"></div>'+
+    el.innerHTML='<div id="tStats"></div><div id="tWarn"></div>'+
       _L('<div class="toolbar"><input id="tSearch" class="ltr" placeholder="جستجو: پورت، دامنه، IP…" autocomplete="off">')+
       _L('<div class="seg sm" id="tFilter"><button data-f="all" class="on">همه</button><button data-f="iran">ایران</button><button data-f="kharej">خارج</button><button data-f="bad">مشکل‌دار</button></div>')+
       _L('<select id="tEng" style="width:auto"><option value="">همه موتورها</option>')+Object.keys(ENG).map(k=>'<option value="'+k+'">'+ENG[k].label+'</option>').join('')+'</select>'+
       _L('<button class="btn" id="tAudit" title="بررسی تداخل پورت، IP و لینک بین همه تانل‌ها">')+ic('search')+_L('بررسی تداخل‌ها</button>')+
-      '<button class="btn p" id="tNew">'+ic('plus')+_L('تانل جدید</button></div><div id="tGrid"></div>');
+      '<button class="btn p" id="tNew">'+ic('plus')+_L('تانل جدید</button></div><div id="tGrid"></div>')+'<div id="tTraffic" class="card trbox" style="margin-top:14px"><span class="spin"></span></div>';
     $('#tSearch').addEventListener('input',()=>{S.q=$('#tSearch').value.trim().toLowerCase();renderGrid()});
     $('#tFilter').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.f=b.dataset.f;$$('#tFilter button').forEach(x=>x.classList.toggle('on',x===b));renderGrid()});
     $('#tNew').onclick=()=>{S.form=null;go('form')};
