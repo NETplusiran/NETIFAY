@@ -65,6 +65,7 @@ netifay
 - **به‌روزرسانی از داخل پنل:** از گیت‌هاب، یا آپلود دستی `netifay.py` برای سرورهای ایران؛ اعلان نسخه جدید در صفحه اول
 - **صفحه نمای کلی:** تانل‌های فعال، نسخه پنل، آپتایم، ترافیک لحظه‌ای دانلود/آپلود، CPU، رم، دیسک و ترافیک هر تانل
 - **ترافیک مصرفی سرور** در صفحه «نمای کلی»: امروز، دیروز، ۷ روز، این ماه و ماه قبل (ماه شمسی)، کل، با نمودار ۲۴ ساعت / ۷ روز / ۳۰ روز؛ از کارت شبکه اصلی خوانده می‌شود و با ری‌استارت و آپدیت از دست نمی‌رود
+- **IP و شبکه** پایین «نمای کلی»: IP عمومی IPv4/IPv6 با کشور، شهر و دیتاسنتر، تشخیص NAT، گیت‌وی، DNS، کارت‌های شبکه و IPهای لینک هر تانل (با کلیک کپی می‌شود)
 - **بهینه‌سازی شبکه** با یک کلیک (BBR، بافرهای بزرگ‌تر، محدودیت فایل‌ها)
 - **فایروال و iptables** با یک کلیک: conntrack بزرگ‌تر با تایم‌اوت کوتاه، ماژول‌های کرنل، rp_filter نرم، باز کردن پورت‌ها در ufw / firewalld، MSS clamp؛ نگهبان پنل هر ۲۰ ثانیه قوانین را چک می‌کند و اگر ufw، داکر یا اسکریپت دیگری پاکشان کند خودکار برمی‌گرداند
 - **راهنمای کامل داخل پنل:** انتخاب تانل مناسب، توضیح هر موتور، ترکیب تانل‌ها، عیب‌یابی و چک‌لیست
@@ -107,6 +108,7 @@ Requirements: Ubuntu 20.04+ (other apt-based Debian systems should work but are 
 - All cores installed from this repository; in-panel update from GitHub or by uploading `netifay.py`
 - Overview page: active tunnels, panel version and update notice, uptime, live download/upload, CPU, RAM, disk, per-tunnel traffic
 - Server traffic on the Overview page: today, yesterday, 7 days, this and last month, all time, with a 24 h / 7 d / 30 d chart; read from the main network card and kept across restarts
+- IP & network at the bottom of the Overview page: public IPv4/IPv6 with country, city and provider, NAT detection, gateway, DNS, network interfaces and each tunnel's link IPs (click to copy)
 - One-click network optimization (BBR, larger buffers, file limits)
 - One-click firewall / iptables hardening: larger conntrack table with short timeouts, kernel modules, loose rp_filter, ports opened in ufw / firewalld, MSS clamping; a guard checks the rules every 20 s and restores them if ufw, Docker or another script removes them
 - Complete in-panel guide; UI, guide and server messages in Persian, English, Chinese and Russian; day/night themes; mobile friendly
