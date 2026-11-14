@@ -37,7 +37,7 @@ from http import cookies
 from urllib.parse import urlparse
 import urllib.request
 
-VERSION = "2.9.9"
+VERSION = "2.9.10"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -8772,6 +8772,8 @@ main{max-width:1100px;margin:auto;padding:14px}
 .netbox .netrow{display:flex;justify-content:space-between;align-items:center;gap:8px;line-height:1.7}.netbox .netrow b{font-size:13px}
 .netbox .nd{color:var(--ok);font-size:12px}.netbox .nu{color:var(--acc);font-size:12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;align-items:start}
+/* tunnel cards: fixed columns, each card stacks under the previous one in its column (opening a card only pushes its own column down) */
+.mgrid{display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr));gap:12px;align-items:start}.mcol{display:flex;flex-direction:column;gap:12px;min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .ch{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .badge{font-size:12px;padding:2px 9px;border-radius:99px;font-weight:700}
@@ -9241,8 +9243,17 @@ function renderGrid(){
   });
   if(!list.length){g.innerHTML=_L('<div class="card empty">تانلی با این فیلتر پیدا نشد.</div>');return}
   const open=new Set($$('.card.open',g).map(c=>c.dataset.name));
-  g.innerHTML='<div class="grid">'+list.map(t=>cardHtml(t,open.has(t.name))).join('')+'</div>';
+  const n=gridCols(g);S.gridN=n;
+  const cols=Array.from({length:n},()=>[]);
+  list.forEach((t,i)=>cols[i%n].push(cardHtml(t,open.has(t.name))));
+  g.innerHTML='<div class="mgrid" style="--n:'+n+'">'+cols.map(c=>'<div class="mcol">'+c.join('')+'</div>').join('')+'</div>';
 }
+function gridCols(g){
+  const w=g.clientWidth||($('main')||document.body).clientWidth||innerWidth;
+  return innerWidth<=600?1:Math.max(1,Math.floor((w+12)/(330+12)));
+}
+addEventListener('resize',()=>{const g=$('#tGrid');if(!g||!S.gridN||!g.offsetParent)return;
+  clearTimeout(S.gridT);S.gridT=setTimeout(()=>{if(gridCols(g)!==S.gridN)renderGrid()},150)});
 function meter(label,val,pct,sub){
   pct=Math.max(0,Math.min(100,pct));const c=pct>85?'var(--bad)':pct>60?'var(--warn)':'var(--ok)';
   return '<div class="stat"><span>'+esc(label)+'</span><b class="ltr" style="text-align:right">'+esc(val)+'</b><div class="bar"><i style="width:'+pct.toFixed(1)+'%;background:'+c+'"></i></div>'+(sub?'<span class="ltr" style="display:block;text-align:right;margin-top:3px">'+esc(sub)+'</span>':'')+'</div>';
