@@ -37,7 +37,7 @@ from http import cookies
 from urllib.parse import urlparse
 import urllib.request
 
-VERSION = "2.9.10"
+VERSION = "2.9.11"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
@@ -172,19 +172,123 @@ def peer30(ip):
     return hosts[1] if hosts[0] == ip else hosts[0]
 
 
-def resolve_ipv4(host):
-    if is_ipv4(host):
-        return host
-    for ns in ("1.1.1.1", "8.8.8.8"):
-        rc, out = run(["dig", "+short", "+time=2", "+tries=1", "A", host, "@" + ns], timeout=6)
-        if rc == 0:
-            for line in out.split():
-                if is_ipv4(line):
-                    return line
+# DNS: several resolvers in parallel (foreign DNS is often blocked or slow from Iran), then the
+# last IP that resolved successfully for that domain (so a DNS outage never blocks an edit or a reboot).
+DNS_SERVERS = ("1.1.1.1", "8.8.8.8", "SYS", "9.9.9.9", "208.67.222.222", "178.22.122.100", "185.51.200.2", "78.157.42.100")
+DNS_CACHE_DIR = os.environ.get("RP_DNS_CACHE", "/var/lib/netifay/dns")
+_DNS_BAD = re.compile(r"^(0|10|127)\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\.")
+
+
+def _dns_public(ip):
+    return bool(ip) and is_ipv4(ip) and not _DNS_BAD.match(ip)
+
+
+def _dns_cache_path(host):
+    h = str(host or "").strip().lower()
+    return os.path.join(DNS_CACHE_DIR, h) if re.match(r"^[a-z0-9][a-z0-9.-]{0,252}$", h) else ""
+
+
+def dns_cache_get(host):
+    f = _dns_cache_path(host)
     try:
-        return socket.gethostbyname(host)
+        ip = read_file(f, "").strip() if f else ""
     except OSError:
-        return ""
+        ip = ""
+    return ip if _dns_public(ip) else ""
+
+
+def dns_cache_put(host, ip):
+    f = _dns_cache_path(host)
+    if not f or not _dns_public(ip):
+        return
+    try:
+        os.makedirs(DNS_CACHE_DIR, exist_ok=True)
+        with open(f + ".tmp", "w") as fh:
+            fh.write(ip + "\n")
+        os.replace(f + ".tmp", f)
+    except OSError:
+        pass
+
+
+def resolve_ipv4_ex(host, wait=7.0):
+    """(ip, source): source = "dns", "cache" (last known IP, DNS failed) or "" (nothing)."""
+    host = str(host or "").strip()
+    if not host:
+        return "", ""
+    if is_ipv4(host):
+        return host, "dns"
+    got = {}
+
+    def ask(ns):
+        ip = ""
+        try:
+            if ns == "SYS":
+                for r in socket.getaddrinfo(host, None, socket.AF_INET):
+                    if _dns_public(r[4][0]):
+                        ip = r[4][0]
+                        break
+            else:
+                rc, out = run(["dig", "+short", "+time=2", "+tries=1", "A", host, "@" + ns], timeout=5)
+                if rc == 0:
+                    ip = next((x for x in out.split() if _dns_public(x)), "")
+        except Exception:
+            ip = ""
+        got[ns] = ip
+
+    ths = [threading.Thread(target=ask, args=(ns,), daemon=True) for ns in DNS_SERVERS]
+    for th in ths:
+        th.start()
+    end = time.time() + wait
+    while time.time() < end:
+        # first answer in priority order wins, as soon as every higher-priority server has replied
+        for ns in DNS_SERVERS:
+            if ns not in got:
+                break
+            if got[ns]:
+                dns_cache_put(host, got[ns])
+                return got[ns], "dns"
+        if len(got) == len(DNS_SERVERS):
+            break
+        time.sleep(0.05)
+    for ns in DNS_SERVERS:
+        if got.get(ns):
+            dns_cache_put(host, got[ns])
+            return got[ns], "dns"
+    ip = dns_cache_get(host)
+    return (ip, "cache") if ip else ("", "")
+
+
+def resolve_ipv4(host):
+    return resolve_ipv4_ex(host)[0]
+
+
+def resolve_sh():
+    """Bash resolve() used by the link/forward scripts: same resolvers as the panel, private or
+    filtered answers rejected, last good IP kept per domain and used when every resolver fails."""
+    return (
+        'DNS_CACHE_DIR="' + DNS_CACHE_DIR + '"\n'
+        'resolve() {\n'
+        '    local d="$1" ip="" ns c\n'
+        '    if [[ "$d" =~ ^[0-9]+(\\.[0-9]+){3}$ ]]; then echo "$d"; return; fi\n'
+        '    c="$DNS_CACHE_DIR/$(echo "$d" | tr "A-Z" "a-z")"\n'
+        '    for ns in ' + " ".join(DNS_SERVERS) + '; do\n'
+        '        if [ "$ns" = SYS ]; then\n'
+        '            ip=$(timeout 6 getent ahostsv4 "$d" 2>/dev/null | awk \'{print $1}\')\n'
+        '        else\n'
+        '            ip=$(dig +short +time=2 +tries=1 A "$d" @"$ns" 2>/dev/null)\n'
+        '        fi\n'
+        '        ip=$(echo "$ip" | grep -E \'^[0-9]+(\\.[0-9]+){3}$\' | grep -vE \'^(0|10|127)\\.|^169\\.254\\.|^192\\.168\\.|^172\\.(1[6-9]|2[0-9]|3[01])\\.\' | head -n1)\n'
+        '        [ -n "$ip" ] && break\n'
+        '    done\n'
+        '    if [ -n "$ip" ]; then\n'
+        '        mkdir -p "$DNS_CACHE_DIR" 2>/dev/null && echo "$ip" > "$c.tmp" 2>/dev/null && mv -f "$c.tmp" "$c" 2>/dev/null\n'
+        '    elif [ -s "$c" ]; then\n'
+        '        ip=$(grep -Eo \'^[0-9]+(\\.[0-9]+){3}$\' "$c" | head -n1)\n'
+        '        [ -n "$ip" ] && logger -t rathole-gre "DNS failed for $d; using last known IP $ip"\n'
+        '    fi\n'
+        '    echo "$ip"\n'
+        '}\n'
+    )
 
 
 # ---------------------------------------------------------------- toml
@@ -360,13 +464,7 @@ def gen_gre_script(dev, local_domain, remote_domain, gre_ip, mtu, link="gre"):
         'TTL="255"\n'
     ) % (dev, link, local_domain, remote_domain, gre_ip, inner, mtu)
     body = r'''
-resolve() {
-    local d="$1" ip=""
-    ip=$(dig +short A "$d" @1.1.1.1 2>/dev/null | grep -Eo '^[0-9]+(\.[0-9]+){3}$' | head -n1)
-    [ -z "$ip" ] && ip=$(dig +short A "$d" @8.8.8.8 2>/dev/null | grep -Eo '^[0-9]+(\.[0-9]+){3}$' | head -n1)
-    [ -z "$ip" ] && ip=$(getent ahostsv4 "$d" 2>/dev/null | awk '{print $1; exit}')
-    echo "$ip"
-}
+@@RESOLVE_SH@@
 
 new_local=$(resolve "$LOCAL_DOMAIN")
 new_remote=$(resolve "$REMOTE_DOMAIN")
@@ -414,7 +512,7 @@ if [ "$cur_remote" != "$new_remote" ] || [ "$cur_local" != "$new_local" ]; then
 fi
 exit 0
 '''
-    return head + body
+    return head + body.replace("@@RESOLVE_SH@@", resolve_sh())
 
 
 
@@ -473,14 +571,7 @@ def gen_awg_script(dev, local_domain, remote_domain, gre_ip, mtu, token, role, p
     ) % (dev, local_domain, remote_domain, gre_ip, gre_ip, peer_inner, mtu, awg_port(port), tun,
          GEN["amneziawg"]["dir"], a["private"], a["peer_public"], a["s1"], a["s2"], *a["h"])
     body = r'''
-resolve() {
-    local d="$1" ip=""
-    if [[ "$d" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then echo "$d"; return; fi
-    ip=$(dig +short A "$d" @1.1.1.1 2>/dev/null | grep -Eo '^[0-9]+(\.[0-9]+){3}$' | head -n1)
-    [ -z "$ip" ] && ip=$(dig +short A "$d" @8.8.8.8 2>/dev/null | grep -Eo '^[0-9]+(\.[0-9]+){3}$' | head -n1)
-    [ -z "$ip" ] && ip=$(getent ahostsv4 "$d" 2>/dev/null | awk '{print $1; exit}')
-    echo "$ip"
-}
+@@RESOLVE_SH@@
 new_remote=$(resolve "$REMOTE_DOMAIN")
 
 if ip link show "$DEV" >/dev/null 2>&1; then
@@ -515,7 +606,7 @@ ip link set "$DEV" mtu "$MTU" up
 logger -t rathole-gre "[$DEV] AmneziaWG link up (udp $LISTEN_PORT, peer ${new_remote:-waiting})"
 exit 0
 '''
-    return head + body
+    return head + body.replace("@@RESOLVE_SH@@", resolve_sh())
 
 
 def gen_link_script(dev, local_domain, remote_domain, gre_ip, mtu, link, token, name):
@@ -1907,12 +1998,57 @@ def build_tunnel(p, existing=None):
     return t
 
 
-def resolve_check(t):
-    a = resolve_ipv4(t["local_domain"])
-    b = resolve_ipv4(t["remote_domain"])
+def link_endpoints_now(name):
+    """(local, remote) public IPs the tunnel's existing link device is using right now, or ("", "")."""
+    for lk in LINK_TYPES:
+        dev = link_dev(name, lk)
+        if lk == "awg":
+            rc, out = run([gen_bin("amneziawg", "awg"), "show", dev, "endpoints"], timeout=5)
+            m = re.search(r"\s(\d+\.\d+\.\d+\.\d+):\d+", out or "") if rc == 0 else None
+            if m:
+                return "", m.group(1)
+            continue
+        rc, out = run(["ip", "tunnel", "show", dev], timeout=5)
+        if rc != 0:
+            continue
+        r = re.search(r"remote (\d+\.\d+\.\d+\.\d+)", out or "")
+        l_ = re.search(r"local (\d+\.\d+\.\d+\.\d+)", out or "")
+        if r:
+            return (l_.group(1) if l_ else ""), r.group(1)
+    return "", ""
+
+
+def resolve_check_ex(t, old=None):
+    """Resolve both link domains. A DNS outage must not block an edit: the last IP that resolved
+    for the same domain is used, then (domain unchanged) the IP the running link already uses,
+    and for this server's own domain its real outbound IP. Returns (local_ip, remote_ip, notes)."""
+    notes = []
+    a, sa = resolve_ipv4_ex(t["local_domain"])
+    b, sb = resolve_ipv4_ex(t["remote_domain"])
+    same = bool(old) and old.get("local_domain") == t["local_domain"] and old.get("remote_domain") == t["remote_domain"]
+    cur_l, cur_r = link_endpoints_now(old["name"]) if (same and (not a or not b)) else ("", "")
+    if not b and cur_r:
+        b, sb = cur_r, "link"
+    if not a:
+        a = cur_l or public_ipv4()
+        sa = "link" if cur_l else ("host" if a else "")
     if not a or not b:
         raise ApiError("ریزالو دامنه ناموفق بود: %s → %s ، %s → %s" % (
             t["local_domain"], a or "FAILED", t["remote_domain"], b or "FAILED"))
+    for dom, ip, src in ((t["local_domain"], a, sa), (t["remote_domain"], b, sb)):
+        if src in ("link", "host"):
+            dns_cache_put(dom, ip)
+        if src == "cache":
+            notes.append("DNS سرور جواب نداد؛ برای %s آخرین IP سالم (%s) استفاده شد" % (dom, ip))
+        elif src == "link":
+            notes.append("DNS سرور جواب نداد؛ برای %s همان IP فعلی لینک (%s) استفاده شد" % (dom, ip))
+        elif src == "host":
+            notes.append("DNS سرور جواب نداد؛ برای %s IP خروجی همین سرور (%s) استفاده شد" % (dom, ip))
+    return a, b, notes
+
+
+def resolve_check(t, old=None):
+    a, b, _ = resolve_check_ex(t, old)
     return a, b
 
 
@@ -2308,8 +2444,7 @@ def a_update(p):
                        old.get("remote_domain") != t["remote_domain"] or
                        old.get("gre_ip") != t["gre_ip"] or old.get("link", "gre") != t["link"] or
                        int(old.get("mtu") or 1476) != t["mtu"])
-        if gre_changed:
-            resolve_check(t)
+        notes = resolve_check_ex(t, old)[2] if gre_changed else []
         write_all(t)
         run(["systemctl", "daemon-reload"])
         if gre_changed:
@@ -2320,7 +2455,7 @@ def a_update(p):
             rc, out = run(["systemctl", "restart", svc(name)])
         watcher_add(name)
         return {"name": name, "gre_rebuilt": gre_changed,
-                "warning": out.strip() if rc != 0 else ""}
+                "warning": "\n".join(notes + ([out.strip()] if rc != 0 else []))}
 
 
 def a_action(p):
@@ -3036,8 +3171,7 @@ def a_update_bh(p, old):
         old.get("local_domain") != t["local_domain"] or old.get("remote_domain") != t["remote_domain"] or
         old.get("gre_ip") != t["gre_ip"] or old.get("link", "gre") != t.get("link", "gre") or
         int(old.get("mtu") or 1476) != t["mtu"]))
-    if t["mode"] == "gre" and gre_changed:
-        resolve_check(t)
+    notes = resolve_check_ex(t, old)[2] if (t["mode"] == "gre" and gre_changed) else []
     write_bh(t)
     run(["systemctl", "daemon-reload"])
     if gre_changed:
@@ -3052,7 +3186,7 @@ def a_update_bh(p, old):
         watcher_remove(name)
     return {"name": name, "gre_rebuilt": gre_changed and t["mode"] == "gre",
             "log": cdn_check_log(t) if t["mode"] == "cdn" else [],
-            "warning": out.strip() if rc != 0 else ""}
+            "warning": "\n".join(notes + ([out.strip()] if rc != 0 else []))}
 
 
 # ---- Backhaul core
@@ -3435,20 +3569,13 @@ def gen_iptables_script(t):
         rules.append('    iptables -t nat -A "$CH" -p %s --dport %d -j DNAT --to-destination "$TARGET:%d"'
                      % (s_["type"], s_["port"], s_["port"]))
     target = gen_link_target(t) if t["role"] == "iran" else ""
-    return r'''#!/bin/bash
+    return (r'''#!/bin/bash
 # generated by NETIFAY - iptables port forwarding for %(name)s
 CH="%(ch)s"
 TARGET_HOST="%(target)s"
 STATE="/run/rp-%(name)s.target"
 
-resolve() {
-    local d="$1" ip=""
-    if [[ "$d" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then echo "$d"; return; fi
-    ip=$(dig +short A "$d" @1.1.1.1 2>/dev/null | grep -Eo '^[0-9]+(\.[0-9]+){3}$' | head -n1)
-    [ -z "$ip" ] && ip=$(dig +short A "$d" @8.8.8.8 2>/dev/null | grep -Eo '^[0-9]+(\.[0-9]+){3}$' | head -n1)
-    [ -z "$ip" ] && ip=$(getent ahostsv4 "$d" 2>/dev/null | awk '{print $1; exit}')
-    echo "$ip"
-}
+@@RESOLVE_SH@@
 
 stop_rules() {
     iptables -t mangle -D FORWARD -j "${CH}_M" 2>/dev/null
@@ -3522,7 +3649,7 @@ echo "$TARGET" > "$STATE"
 logger -t netifay "[$CH] forwarding to $TARGET"
 exit 0
 ''' % {"name": t["name"], "ch": ch, "target": target, "rules": "\n".join(rules) or "    :",
-       "nrules": len(rules)}
+       "nrules": len(rules)}).replace("@@RESOLVE_SH@@", resolve_sh())
 
 
 def gen_cert_paths(name, eng):
@@ -3908,8 +4035,7 @@ def a_update_gen(p, old):
     link_changed = (old.get("mode") != t["mode"]) or (t["mode"] == "gre" and (
         old.get("local_domain") != t["local_domain"] or old.get("remote_domain") != t["remote_domain"] or
         old.get("gre_ip") != t["gre_ip"] or old.get("link") != t["link"] or int(old.get("mtu") or 0) != t["mtu"]))
-    if t["mode"] == "gre" and link_changed:
-        resolve_check(t)
+    notes = resolve_check_ex(t, old)[2] if (t["mode"] == "gre" and link_changed) else []
     if eng == "iptables":
         run(["systemctl", "stop", svc(name, eng)], timeout=40)
     write_gen(t)
@@ -3927,7 +4053,7 @@ def a_update_gen(p, old):
     if eng == "iptables":
         ipt_watch_set(name, t["role"] == "iran" and t["mode"] == "direct")
     return {"name": name, "gre_rebuilt": link_changed and t["mode"] == "gre",
-            "warning": out.strip() if rc != 0 else ""}
+            "warning": "\n".join(notes + ([out.strip()] if rc != 0 else []))}
 
 
 # ---- cores for generic engines
@@ -7133,6 +7259,9 @@ UPLOAD_ACTIONS = ("update_upload", "core_upload", "backup_upload", "bh_core_uplo
 # Messages are written in Persian; when the browser asks for English (X-Lang: en) every
 # Persian fragment in the JSON response is replaced by its English counterpart.
 I18N_EN = {
+ "DNS سرور جواب نداد؛ برای %s آخرین IP سالم (%s) استفاده شد": "Server DNS did not answer; for %s the last good IP (%s) was used",
+ "DNS سرور جواب نداد؛ برای %s همان IP فعلی لینک (%s) استفاده شد": "Server DNS did not answer; for %s the link's current IP (%s) was used",
+ "DNS سرور جواب نداد؛ برای %s IP خروجی همین سرور (%s) استفاده شد": "Server DNS did not answer; for %s this server's outbound IP (%s) was used",
  "%s: سرویس فعال نیست؛ رد شد": "%s: service is not active; skipped",
  "%s: قوانین سالم است ✓": "%s: rules are intact ✓",
  "%s: قوانین بازسازی شد": "%s: rules rebuilt",
@@ -7544,6 +7673,9 @@ I18N_EN = {
 }
 # --- Chinese / Russian: English text -> translation (falls back to English) ---
 I18N_ZH = {
+ "Server DNS did not answer; for %s the last good IP (%s) was used": "服务器 DNS 无响应；%s 使用了上次可用的 IP（%s）",
+ "Server DNS did not answer; for %s the link's current IP (%s) was used": "服务器 DNS 无响应；%s 使用了链路当前的 IP（%s）",
+ "Server DNS did not answer; for %s this server's outbound IP (%s) was used": "服务器 DNS 无响应；%s 使用了本服务器的出口 IP（%s）",
  "%s: service is not active; skipped": "%s：服务未运行，已跳过",
  "%s: rules are intact ✓": "%s：规则完好 ✓",
  "%s: rules rebuilt": "%s：规则已重建",
@@ -7943,6 +8075,9 @@ I18N_ZH = {
  "Internal server error (details in the panel log)": "服务器内部错误（详见面板日志）"
 }
 I18N_RU = {
+ "Server DNS did not answer; for %s the last good IP (%s) was used": "DNS сервера не ответил; для %s использован последний рабочий IP (%s)",
+ "Server DNS did not answer; for %s the link's current IP (%s) was used": "DNS сервера не ответил; для %s использован текущий IP линка (%s)",
+ "Server DNS did not answer; for %s this server's outbound IP (%s) was used": "DNS сервера не ответил; для %s использован исходящий IP этого сервера (%s)",
  "%s: service is not active; skipped": "%s: служба не активна; пропущено",
  "%s: rules are intact ✓": "%s: правила в порядке ✓",
  "%s: rules rebuilt": "%s: правила восстановлены",
