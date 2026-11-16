@@ -51,7 +51,7 @@ netifay
 
 ## امکانات
 
-- **مدیریت تانل:** ساخت، ویرایش، کلون، حذف، ری‌استارت زمان‌بندی‌شده، لاگ، تست پینگ لینک و تست واقعی پورت‌ها تا سرویس مقصد
+- **مدیریت تانل:** ساخت، ویرایش (حتی تغییر پورت تانل)، کلون، حذف، ری‌استارت زمان‌بندی‌شده، لاگ، تست پینگ لینک و تست واقعی پورت‌ها تا سرویس مقصد
 - **جلوگیری از تداخل:** پورت تکراری بین تانل‌ها، کلاینت‌ها، سایت‌ها و پورت پنل؛ شبکه داخلی تکراری؛ دو لینک هم‌نوع به یک سرور؛ دکمه «بررسی تداخل‌ها»
 - **تانل تو در تو:** ایران ← سرور واسط ← چند پنل؛ IP پنل‌ها از ایران دیده نمی‌شود
 - **کلاینت** (بدون سرور خارج، فقط با یک کانفیگ V2Ray / OpenVPN / WireGuard):
@@ -98,7 +98,7 @@ Requirements: Ubuntu 20.04+ (other apt-based Debian systems should work but are 
 **Network links:** GRE / IPIP / 6to4 / AmneziaWG (encrypted and obfuscated), built from domains and updated automatically when an IP changes.
 
 **Features**
-- Create, edit, clone, delete, scheduled restarts, logs, link ping test and real end-to-end port tests
+- Create, edit (including the tunnel port), clone, delete, scheduled restarts, logs, link ping test and real end-to-end port tests
 - Conflict prevention across tunnels, clients, SSL sites and the panel port, plus a "Check conflicts" audit
 - Nested (chained) tunnels through an intermediate server
 - **Client** tab, with only a V2Ray / OpenVPN / WireGuard config and no abroad server of your own: forward ports to a panel elsewhere, or give a sales panel on the same server (e.g. 3x-ui) an internet exit (local SOCKS on 127.0.0.1, or all outgoing traffic of a systemd service). Nothing leaks from the server IP when the VPN drops; SSH and the default route are untouched.
