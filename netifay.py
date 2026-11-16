@@ -37,7 +37,7 @@ from http import cookies
 from urllib.parse import urlparse
 import urllib.request
 
-VERSION = "2.9.12"
+VERSION = "3.0.0"
 CORE_DIR = os.environ.get("RATHOLE_DIR", "/root/rathole-core")
 SERVICE_DIR = os.environ.get("RATHOLE_SERVICE_DIR", "/etc/systemd/system")
 PANEL_CONF = os.environ.get("RATHOLE_PANEL_CONF", "/etc/netifay/config.json")
